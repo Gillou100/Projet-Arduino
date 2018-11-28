@@ -35,7 +35,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
 int nb_nodes_activees = 0;
-int my_node = 9;
+int my_node = 2;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -91,6 +91,7 @@ void setup() {
 //  canutil.setAcceptanceFilter(0x2AB, 2000, NORMAL_FRAME, RX_ACCEPT_FILTER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 0
 //  canutil.setAcceptanceFilter(0x2AC, 2001, NORMAL_FRAME, RX_ACCEPT_FILTER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 1
 //  canutil.setAcceptanceMask(0xFFFF, 0x00000000, RX_BUFFER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, buffer# 0
+  canutil.setAcceptanceMask(0x000, 0x00000000, RX_BUFFER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, buffer# 0 ////////////////
   // in this case, only messages with ID equal to 0x2AB or 0x2AC will be accepted since mask is set to 0xFFF
   // for example, if mask is set to 0xFF0, all the message with ID beginning with 0x2A will be accepted
 
@@ -102,6 +103,7 @@ void setup() {
 //  canutil.setAcceptanceFilter(0x2AA, 2004, NORMAL_FRAME, RX_ACCEPT_FILTER_4); // 0 <= stdID <= 2047, 0 <= extID <= 262143,
 //  canutil.setAcceptanceFilter(0x2AA, 2005, NORMAL_FRAME, RX_ACCEPT_FILTER_5);// 0 <= stdID <= 2047, 0 <= extID <= 262143,
 //  canutil.setAcceptanceMask(0xFFF, 0xFFFFFFFF, RX_BUFFER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 
+  canutil.setAcceptanceMask(0x000, 0xFFFFFFFF, RX_BUFFER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143,   //////////////
 
   canutil.setOpMode(OPMODE_NORMAL); // sets normal mode
   opmode = canutil.whichOpMode();
@@ -145,8 +147,9 @@ void loop() {
         Master();
       }
       else if (isInt == 1){
-        reponse_Master();
         isInt = 0;
+        can_dev.write(CANINTF, 0x00);
+        reponse_Master();
       }
   }
 
@@ -260,6 +263,8 @@ void Master(){
     msgID = 0x102;
     canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
     canutil.setTxBufferDataLength(SEND_DATA_FRAME, nb_nodes_activees, TX_BUFFER_0);
+    canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
+    canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);    
     do {
       txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
       Serial.print("TX error = ");
@@ -276,7 +281,7 @@ void Master(){
       delay(500);
     }
     while (txstatus != 0);
-    
+    Serial.println("tableau envoye");
     initialisation = true;
   }
 }
@@ -310,9 +315,10 @@ void sendMessage() {
 
 
 void reponse_Master(){
+  Serial.print("Entrez dans reponse : ");
   msgID = canutil.whichStdID(RX_BUFFER_0);
+  Serial.println(msgID, HEX);
   if(msgID == 0x100 || msgID == 0x102){
-      can_dev.write(CANINTF, 0x00);
       recSize = canutil.whichRxDataLength(RX_BUFFER_0);
       for (int i = 0; i < recSize; i++) {
         recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
