@@ -25,7 +25,14 @@ uint8_t tosend[8];
 uint8_t recSize, recData[8];
 uint8_t push = 1;
 uint16_t msgID = 0x2AB;
-
+const int nb_nodes_max = 15;
+int nb_nodes_activees = 0;
+int my_node = 9;
+uint8_t list_nodes[nb_nodes_max];
+int compteur;
+bool attente;
+unsigned long temps1;
+unsigned long temps2;
 
 void setup() {
   pinMode(3, INPUT);
@@ -115,20 +122,21 @@ void setup() {
 
 void loop() {
 
+  Master();
 
-  if ( digitalRead(13) == 0 && push == 0) {
+  /*if ( digitalRead(3) == 0 && push == 0) {
     sendMessage();
     push = 1;
   }
 
 
-  if ( digitalRead(13) == 1) {
+  if ( digitalRead(3) == 1) {
   push = 0;
 }
 
  if (isInt==1){
   displayMessage();
- }
+ }*/
 
 
 }
@@ -141,6 +149,68 @@ void loop() {
 //******************************************************************
 //                     other routines
 //******************************************************************
+
+void Master(){
+
+  //delay(5000);
+  //msgID = 0x100;
+  canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
+  canutil.setTxBufferDataLength(SEND_DATA_FRAME, 1, TX_BUFFER_0);
+  Serial.println("initialisation trame");
+  
+  for(compteur = 1; compteur < nb_nodes_max + 1; compteur++){
+    if(nb_nodes_activees < 8){
+      if (compteur != my_node){
+        
+        // envoie
+        tosend[0] = compteur;
+        canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
+        canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);
+        Serial.println("initialisation envoie");
+        do {
+          txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
+          Serial.print("TX error = ");
+          Serial.println(txstatus, DEC);
+          txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
+          Serial.print("arb. loss = ");
+          Serial.println(txstatus, DEC);
+          txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
+          Serial.print("TX abort = ");
+          Serial.println(txstatus, DEC);
+          txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
+          Serial.print("mess. pending = ");
+          Serial.println(txstatus, DEC);
+          delay(500);
+        }
+        while (txstatus != 0);
+  
+        // réponse
+        attente = true;
+        temps1 = millis();
+        temps2 = millis();
+        Serial.println("avant reponse");
+        while (attente == true && (temps2 - temps1) < 2000){
+          if (isInt == 1){
+            
+            // vérifier contenu réception
+            
+            list_nodes[nb_nodes_activees] = compteur;
+            nb_nodes_activees++;
+            attente = false;
+          }
+          temps2 = millis();
+        }
+        Serial.println("apres reponse");
+      }
+      else if (compteur == my_node){
+        list_nodes[nb_nodes_activees] = compteur;
+        nb_nodes_activees++;
+        Serial.println("c'est moi");
+      }
+    }
+  }
+}
+
 void sendMessage() {
   tosend[0]++;
   canutil.setTxBufferDataField(tosend, TX_BUFFER_0);   // fills TX buffer
