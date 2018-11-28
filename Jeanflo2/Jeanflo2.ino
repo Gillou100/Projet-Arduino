@@ -6,6 +6,7 @@
 //************************************************************
 
 #include <MCP23008.h>
+#include <MCP23S08.h>
 #include <MCP2510.h>
 #include <LiquidCrystal.h>
 #include <Wire.h>
