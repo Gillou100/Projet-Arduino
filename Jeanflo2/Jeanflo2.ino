@@ -35,7 +35,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
 int nb_nodes_activees = 0;
-int my_node = 3;            /////////////////// 9
+int my_node = 9;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -83,23 +83,25 @@ void setup() {
   can_dev.write(CNF2, 0b10110001); //BLTMODE = 1, SAM = 0, PHSEG = 6, PRSEG = 1
   can_dev.write(CNF3, 0x05);  // WAKFIL = 0, PHSEG2 = 5
 
+
+
   // Settings for buffer RXB0
   //canutil.setRxOperatingMode(3, 1, 0);  // mask off  and rollover
   canutil.setRxOperatingMode(RXMODE_STDONLY, ROLLOVER_ENABLE, RX_BUFFER_0);  // standard ID messages only  and rollover
-  canutil.setAcceptanceFilter(0x2AB, 2000, NORMAL_FRAME, RX_ACCEPT_FILTER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 0
-  canutil.setAcceptanceFilter(0x2AC, 2001, NORMAL_FRAME, RX_ACCEPT_FILTER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 1
-  canutil.setAcceptanceMask(0xFFFF, 0x00000000, RX_BUFFER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, buffer# 0
+//  canutil.setAcceptanceFilter(0x2AB, 2000, NORMAL_FRAME, RX_ACCEPT_FILTER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 0
+//  canutil.setAcceptanceFilter(0x2AC, 2001, NORMAL_FRAME, RX_ACCEPT_FILTER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 1
+//  canutil.setAcceptanceMask(0xFFFF, 0x00000000, RX_BUFFER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, buffer# 0
   // in this case, only messages with ID equal to 0x2AB or 0x2AC will be accepted since mask is set to 0xFFF
   // for example, if mask is set to 0xFF0, all the message with ID beginning with 0x2A will be accepted
 
 
   // Settings for buffer RXB1
   canutil.setRxOperatingMode(RXMODE_STDONLY, ROLLOVER_ENABLE, RX_BUFFER_1);  // std  ID messages  rollover 
-  canutil.setAcceptanceFilter(0x2AA, 2002, NORMAL_FRAME, RX_ACCEPT_FILTER_2); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 
-  canutil.setAcceptanceFilter(0x2AA, 2003, NORMAL_FRAME, RX_ACCEPT_FILTER_3); // 0 <= stdID <= 2047, 0 <= extID <= 262143,
-  canutil.setAcceptanceFilter(0x2AA, 2004, NORMAL_FRAME, RX_ACCEPT_FILTER_4); // 0 <= stdID <= 2047, 0 <= extID <= 262143,
-  canutil.setAcceptanceFilter(0x2AA, 2005, NORMAL_FRAME, RX_ACCEPT_FILTER_5);// 0 <= stdID <= 2047, 0 <= extID <= 262143,
-  canutil.setAcceptanceMask(0xFFF, 0xFFFFFFFF, RX_BUFFER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 
+//  canutil.setAcceptanceFilter(0x2AA, 2002, NORMAL_FRAME, RX_ACCEPT_FILTER_2); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 
+//  canutil.setAcceptanceFilter(0x2AA, 2003, NORMAL_FRAME, RX_ACCEPT_FILTER_3); // 0 <= stdID <= 2047, 0 <= extID <= 262143,
+//  canutil.setAcceptanceFilter(0x2AA, 2004, NORMAL_FRAME, RX_ACCEPT_FILTER_4); // 0 <= stdID <= 2047, 0 <= extID <= 262143,
+//  canutil.setAcceptanceFilter(0x2AA, 2005, NORMAL_FRAME, RX_ACCEPT_FILTER_5);// 0 <= stdID <= 2047, 0 <= extID <= 262143,
+//  canutil.setAcceptanceMask(0xFFF, 0xFFFFFFFF, RX_BUFFER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 
 
   canutil.setOpMode(OPMODE_NORMAL); // sets normal mode
   opmode = canutil.whichOpMode();
@@ -109,10 +111,11 @@ void setup() {
   canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0); // TX standard messsages with buffer 0
   canutil.setTxBufferDataLength(SEND_DATA_FRAME, 1, TX_BUFFER_0); // TX normal data, 1 byte long, with buffer 0
   
- 
+
 
   for (int i = 0; i < 8; i++) {
     tosend[i] = 0;
+    list_nodes[i] = 0;
   }
 
   lcd.setCursor(0, 1);
@@ -143,6 +146,7 @@ void loop() {
       }
       else if (isInt == 1){
         reponse_Master();
+        isInt = 0;
       }
   }
 
@@ -178,7 +182,7 @@ void loop() {
 void Master(){
 
   //delay(5000);
-  //msgID = 0x100;
+  msgID = 0x100;
   canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
   canutil.setTxBufferDataLength(SEND_DATA_FRAME, 1, TX_BUFFER_0);
   Serial.println("initialisation trame");
@@ -216,17 +220,23 @@ void Master(){
         Serial.println("avant reponse");
         while (attente == true && (temps2 - temps1) < 2000){
           if (isInt == 1){
-            
-            // vérifier contenu réception
-
             can_dev.write(CANINTF, 0x00);
-            Serial.println("Ajout au tableau");
-            list_nodes[nb_nodes_activees] = compteur;
-            nb_nodes_activees++;
-            isInt = 0;
-            attente = false;
-          }
-          temps2 = millis();
+            msgID = canutil.whichStdID(RX_BUFFER_0);
+            if(msgID == 0x101){ 
+              recSize = canutil.whichRxDataLength(RX_BUFFER_0);
+              for (int i = 0; i < recSize; i++) {
+                recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
+              }
+              if(recData[0] == compteur){
+                Serial.println("Ajout au tableau");
+                list_nodes[nb_nodes_activees] = compteur;
+                nb_nodes_activees++;
+                isInt = 0;
+                attente = false;
+              }
+            }
+         }
+           temps2 = millis();
         }
         Serial.println("apres reponse");
       }
@@ -238,9 +248,38 @@ void Master(){
     }
     Serial.println("");
   }
-  initialisation = true;
-}
 
+  /*for(compteur = nb_nodes_activees; compteur < nb_nodes_max; compteur++){
+    list_nodes[compteur] = 0;
+  }*/
+  if (nb_nodes_activees > 1){
+    for(compteur = 0; compteur < nb_nodes_activees; compteur++){
+      tosend[compteur] = list_nodes[compteur];
+    }
+  
+    msgID = 0x102;
+    canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
+    canutil.setTxBufferDataLength(SEND_DATA_FRAME, nb_nodes_activees, TX_BUFFER_0);
+    do {
+      txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
+      Serial.print("TX error = ");
+      Serial.println(txstatus, DEC);
+      txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
+      Serial.print("arb. loss = ");
+      Serial.println(txstatus, DEC);
+      txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
+      Serial.print("TX abort = ");
+      Serial.println(txstatus, DEC);
+      txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
+      Serial.print("mess. pending = ");
+      Serial.println(txstatus, DEC);
+      delay(500);
+    }
+    while (txstatus != 0);
+    
+    initialisation = true;
+  }
+}
 
 
 void sendMessage() {
@@ -271,45 +310,50 @@ void sendMessage() {
 
 
 void reponse_Master(){
-    can_dev.write(CANINTF, 0x00);
-    recSize = canutil.whichRxDataLength(RX_BUFFER_0);
-    for (int i = 0; i < recSize; i++) {
-      recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
-    }
-    if (recSize == 1 && recData[0] == my_node){
-      tosend[0] = my_node;
-      canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
-      canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);
-      Serial.println("initialisation reponse");
-      do {
-        txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
-        Serial.print("TX error = ");
-        Serial.println(txstatus, DEC);
-        txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
-        Serial.print("arb. loss = ");
-        Serial.println(txstatus, DEC);
-        txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
-        Serial.print("TX abort = ");
-        Serial.println(txstatus, DEC);
-        txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
-        Serial.print("mess. pending = ");
-        Serial.println(txstatus, DEC);
-        delay(500);
+  msgID = canutil.whichStdID(RX_BUFFER_0);
+  if(msgID == 0x100 || msgID == 0x102){
+      can_dev.write(CANINTF, 0x00);
+      recSize = canutil.whichRxDataLength(RX_BUFFER_0);
+      for (int i = 0; i < recSize; i++) {
+        recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
       }
-      while (txstatus != 0);
-      Serial.println("reponse envoyee");
-    }
-    else if (recSize != 1){
-      for (compteur = 0; compteur < 8; compteur++){
-        if (compteur < recSize){
-          list_nodes[compteur] = recData[compteur];
+      if (msgID == 0x100 && recData[0] == my_node){
+        tosend[0] = my_node;
+        msgID = 0x101;
+        canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
+        canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
+        canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);
+        Serial.println("initialisation reponse");
+        do {
+          txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
+          Serial.print("TX error = ");
+          Serial.println(txstatus, DEC);
+          txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
+          Serial.print("arb. loss = ");
+          Serial.println(txstatus, DEC);
+          txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
+          Serial.print("TX abort = ");
+          Serial.println(txstatus, DEC);
+          txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
+          Serial.print("mess. pending = ");
+          Serial.println(txstatus, DEC);
+          delay(500);
         }
-        else {
-          list_nodes[compteur] = 0;
-        }
+        while (txstatus != 0);
+        Serial.println("reponse envoyee");
       }
-      initialisation = true;
-   }
+      else if (msgID == 0x102){
+        for (compteur = 0; compteur < 8; compteur++){
+          if (compteur < recSize){
+            list_nodes[compteur] = recData[compteur];
+          }
+          else {
+            list_nodes[compteur] = 0;
+          }
+        }
+        initialisation = true;
+     }
+  }
 }
 
 
