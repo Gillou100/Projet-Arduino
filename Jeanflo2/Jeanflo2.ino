@@ -1,4 +1,4 @@
-
+////////////////// Voir à la fin utiliser les filtres si reste temps
 
 //************************************************************
 // normal mode, sends and recs one byte, std messages
@@ -143,7 +143,12 @@ void setup() {
 void loop() {
 
   while (initialisation == false){
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.write("Attente");
       if(appuis(9)){
+        lcd.clear();
+        lcd.write("Master --> ");
         Master();
       }
       else if (isInt == 1){
@@ -153,6 +158,7 @@ void loop() {
       }
   }
 
+  
   Serial.println("Normal Mode");
 
 
@@ -184,13 +190,15 @@ void loop() {
 
 void Master(){
 
-  //delay(5000);
+  delay(5000);                            // Remettre délai 5s debut
   msgID = 0x100;
   canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
   canutil.setTxBufferDataLength(SEND_DATA_FRAME, 1, TX_BUFFER_0);
   Serial.println("initialisation trame");
   
   for(compteur = 1; compteur < nb_nodes_max + 1; compteur++){
+    lcd.setCursor(11, 0);
+    lcd.print(compteur);
     if(nb_nodes_activees < 8){
       if (compteur != my_node){
         
@@ -255,7 +263,17 @@ void Master(){
   /*for(compteur = nb_nodes_activees; compteur < nb_nodes_max; compteur++){
     list_nodes[compteur] = 0;
   }*/
+  lcd.clear();
+  lcd.write("Liste :");
+  lcd.setCursor(0, 1);
+  lcd.print(nb_nodes_activees);
+  lcd.setCursor(2, 1);
+  lcd.write("node(s)");
+  delay(1000);
   if (nb_nodes_activees > 1){
+    lcd.clear();
+    lcd.write("Envoie liste");
+    delay(1000);
     for(compteur = 0; compteur < nb_nodes_activees; compteur++){
       tosend[compteur] = list_nodes[compteur];
     }
@@ -282,6 +300,9 @@ void Master(){
     }
     while (txstatus != 0);
     Serial.println("tableau envoye");
+    lcd.clear();
+    lcd.write("Liste envoyee");
+    delay(1000);
     initialisation = true;
   }
 }
@@ -319,6 +340,8 @@ void reponse_Master(){
   msgID = canutil.whichStdID(RX_BUFFER_0);
   Serial.println(msgID, HEX);
   if(msgID == 0x100 || msgID == 0x102){
+      lcd.clear();
+      lcd.write("Message recu");
       recSize = canutil.whichRxDataLength(RX_BUFFER_0);
       for (int i = 0; i < recSize; i++) {
         recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
@@ -347,8 +370,12 @@ void reponse_Master(){
         }
         while (txstatus != 0);
         Serial.println("reponse envoyee");
+        lcd.clear();
+        lcd.write("Reponse envoyee");
+        delay(1000);
       }
       else if (msgID == 0x102){
+        nb_nodes_activees = recSize;
         for (compteur = 0; compteur < 8; compteur++){
           if (compteur < recSize){
             list_nodes[compteur] = recData[compteur];
@@ -357,6 +384,8 @@ void reponse_Master(){
             list_nodes[compteur] = 0;
           }
         }
+        lcd.clear();
+        lcd.write("Liste recue");
         initialisation = true;
      }
   }
