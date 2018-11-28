@@ -3,15 +3,13 @@
 
 #define MCP23008_ADDR 0x00  // Adresse I2C par défaut
 #define MCP23S08_ADDR 0x00  // Adresse SPI par défaut
-#define MASQ6 0b0100
-#define MASQ7 0b0010
-#define MASQ8 0b0001
-#define MASQ9 0b1000
+#define MASQ6 0b0100    // Masque pour reconnaitre les appuis sur le bouton 6
+#define MASQ7 0b0010    // Masque pour reconnaitre les appuis sur le bouton 7
+#define MASQ8 0b0001    // Masque pour reconnaitre les appuis sur le bouton 8
+#define MASQ9 0b1000    // Masque pour reconnaitre les appuis sur le bouton 9
 
 MCP23008 i2cIo(MCP23008_ADDR);      // Objet pour le protocole I2C
 MCP23S08 spiIo(MCP23S08_ADDR, 10);  // Objet pour le protocole SPI
-
-uint8_t donnees[8];
 
 void setup()
 {
@@ -23,7 +21,6 @@ void setup()
 
 void loop()
 {
-    
 }
 
 boolean appuis(int bouton)
@@ -62,40 +59,4 @@ boolean appuis(int bouton)
             return false;
             break;
     }
-}
-void CommanderledI2c(bool ok)
-{
-    if(ok)
-    {
-        uint8_t swStateI2c = i2cIo.Read(GPIO);
-        swStateI2c = (swStateI2c & 0x0F) << 4;
-        i2cIo.Write(GPIO, swStateI2c);
-    }
-    else
-    {
-        i2cIo.Write(GPIO, 0b1111 << 4);
-    }
-}
-void ledSpi(bool ok)
-{
-    if(ok)
-    {
-        uint8_t swStateI2c = i2cIo.Read(GPIO);
-        swStateI2c = (swStateI2c & 0x0F) << 4;
-        spiIo.Write(GPIO, swStateI2c);
-    }
-    else
-    {
-        spiIo.Write(GPIO, 0b1111 << 4);
-    }   
-}
-
-void fonctionJF(int opCode, uint8_t data[8])
-{
-    Serial.println("ID Action : " + opCode);
-    for(int i = 0; i < 8; i++)
-    {
-        Serial.print(data[i] + " ");
-    }
-    Serial.println();
 }
