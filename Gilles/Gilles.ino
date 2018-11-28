@@ -14,7 +14,7 @@ void setup()
 {
     Serial.begin(9600);
 
-    I2cIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits (Je sais pas ce que çça fait, mais c'est nécessaire)
+    i2cIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits (Je sais pas ce que çça fait, mais c'est nécessaire)
     spiIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits (Je sais pas ce que çça fait, mais c'est nécessaire)
 }
 
@@ -25,8 +25,8 @@ void loop()
     i2cIo.Write(GPIO, swStateI2c);
 
     swStateSpi = spiIo.Read(GPIO);
-    swStateSpi = (swStateI2c & 0x0F) << 4;
-    spiIo.write(GPIO, swStateSpi);
+    swStateSpi = (swStateSpi & 0x0F) << 4;
+    spiIo.Write(GPIO, swStateSpi);
 
     delay(100);
 }
