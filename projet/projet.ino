@@ -23,4 +23,10 @@ void loop()
     swStateI2c = i2cIo.Read(GPIO);          // Lecture de l'état des boutons
     swStateI2c = (swStateI2c & 0x0F) << 4;  // Décalage des bits, je ne sais plus pourquoi xD
     i2cIo.Write(GPIO, swStateI2c);
+
+    swStateSpi = spiIo.Read(GPIO);
+    swStateSpi = (swStateI2c & 0x0F) << 4;
+    spiIo.write(GPIO, swStateSpi);
+
+    delay(100);
 }
