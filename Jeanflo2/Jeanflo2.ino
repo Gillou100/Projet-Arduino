@@ -18,7 +18,6 @@ LiquidCrystal lcd(15, 0, 14, 4, 5, 6, 7);  //  4 bits without R/W pin
 MCP23008 i2c_io(MCP23008_ADDR);         // Init MCP23008
 Canutil  canutil(can_dev);
 
-uint8_t canstat = 0;
 uint8_t opmode, txstatus;
 volatile int isInt;
 uint8_t tosend[8];
@@ -30,6 +29,7 @@ int nb_nodes_activees = 0;
 int my_node = 9;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
+bool initialisation;
 bool attente;
 unsigned long temps1;
 unsigned long temps2;
@@ -114,6 +114,8 @@ void setup() {
   can_dev.write(CANINTF, 0x00);  // Clears all interrupts flags
   push = 0;
 
+  initialisation = false;
+
    delay(1000);
 
 }
@@ -122,7 +124,17 @@ void setup() {
 
 void loop() {
 
-  Master();
+  while (initialisation == false){
+      if(){ // bouton SW9 appuyé
+        Master();
+      }
+      else if (isInt == 1){
+        reponse_Master();
+      }
+  }
+
+  Serial.println("Normal Mode");
+
 
   /*if ( digitalRead(3) == 0 && push == 0) {
     sendMessage();
@@ -193,9 +205,12 @@ void Master(){
           if (isInt == 1){
             
             // vérifier contenu réception
-            
+
+            can_dev.write(CANINTF, 0x00);
+            Serial.println("Ajout au tableau");
             list_nodes[nb_nodes_activees] = compteur;
             nb_nodes_activees++;
+            isInt = 0;
             attente = false;
           }
           temps2 = millis();
@@ -208,8 +223,12 @@ void Master(){
         Serial.println("c'est moi");
       }
     }
+    Serial.println("");
   }
+  initialisation = true;
 }
+
+
 
 void sendMessage() {
   tosend[0]++;
@@ -235,6 +254,49 @@ void sendMessage() {
   }
   while (txstatus != 0);
 
+}
+
+
+void reponse_Master(){
+    can_dev.write(CANINTF, 0x00);
+    recSize = canutil.whichRxDataLength(RX_BUFFER_0);
+    for (int i = 0; i < recSize; i++) {
+      recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
+    }
+    if (recSize == 1 && recData[0] == my_node){
+      tosend[0] = my_node;
+      canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
+      canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);
+      Serial.println("initialisation reponse");
+      do {
+        txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
+        Serial.print("TX error = ");
+        Serial.println(txstatus, DEC);
+        txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
+        Serial.print("arb. loss = ");
+        Serial.println(txstatus, DEC);
+        txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
+        Serial.print("TX abort = ");
+        Serial.println(txstatus, DEC);
+        txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
+        Serial.print("mess. pending = ");
+        Serial.println(txstatus, DEC);
+        delay(500);
+      }
+      while (txstatus != 0);
+      Serial.println("reponse envoyee");
+    }
+    else if (recSize != 1){
+      for (compteur = 0; compteur < 8; compteur++){
+        if (compteur < recSize){
+          list_nodes[compteur] = recData[compteur];
+        }
+        else {
+          list_nodes[compteur] = 0;
+        }
+      }
+      initialisation = true;
+   }
 }
 
 
