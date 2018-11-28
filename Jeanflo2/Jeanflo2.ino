@@ -35,7 +35,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
 int nb_nodes_activees = 0;
-int my_node = 9;
+int my_node = 3;            /////////////////// 9
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;

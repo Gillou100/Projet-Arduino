@@ -23,7 +23,6 @@ void setup()
 
 void loop()
 {
-    
 }
 
 boolean appuis(int bouton)
@@ -76,7 +75,7 @@ void CommanderledI2c(bool ok)
         i2cIo.Write(GPIO, 0b1111 << 4);
     }
 }
-void ledSpi(bool ok)
+void CommanderledSpi(bool ok)
 {
     if(ok)
     {
