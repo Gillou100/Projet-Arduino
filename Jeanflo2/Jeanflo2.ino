@@ -42,6 +42,11 @@ bool initialisation;
 bool attente;
 unsigned long temps1;
 unsigned long temps2;
+byte pinPoten = 3;
+int valeur_poten;
+byte LSB_poten;
+byte MSB_poten;
+int numero_list;
 
 void setup() {
   pinMode(3, INPUT);
@@ -131,7 +136,6 @@ void setup() {
   i2cIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits (Je sais pas ce que çça fait, mais c'est nécessaire)
   spiIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits (Je sais pas ce que çça fait, mais c'est nécessaire)
 
-
   initialisation = false;
 
    delay(1000);
@@ -144,8 +148,8 @@ void loop() {
 
   while (initialisation == false){
       lcd.clear();
-      lcd.setCursor(0, 0);
       lcd.write("Attente");
+      delay(500);
       if(appuis(9)){
         lcd.clear();
         lcd.write("Master --> ");
@@ -159,7 +163,7 @@ void loop() {
   }
 
   
-  Serial.println("Normal Mode");
+  afficher_liste();
 
 
   /*if ( digitalRead(3) == 0 && push == 0) {
@@ -410,6 +414,26 @@ void displayMessage() {
   lcd.print(recData[0], HEX);
   lcd.print(" Hex");
 }
+
+
+void afficher_liste(){
+  valeur_poten = analogRead(pinPoten);
+  //numero_list = map(valeur_poten, 0, 1023, 0, nb_nodes_activees - 1);
+  numero_list = (int) ((valeur_poten * nb_nodes_activees) / 1023);
+  if(numero_list == nb_nodes_activees){
+    numero_list--;
+  }
+  Serial.println(numero_list);
+  lcd.clear();
+  lcd.write("Node choisie : ");
+  lcd.setCursor(0, 1);
+  lcd.write("numero ");
+  lcd.setCursor(8, 1);
+  lcd.print(list_nodes[numero_list]);
+  delay(500);
+}
+
+
 //************************************************
 // routine attached to INT pin
 //************************************************
