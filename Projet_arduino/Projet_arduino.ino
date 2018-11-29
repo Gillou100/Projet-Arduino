@@ -415,9 +415,11 @@ void Reaction(){
     lcd.clear();
     msgID = canutil.whichStdID(RX_BUFFER_0);
     lcd.print(msgID, HEX);
-    lcd.setCursor(8, 0);
+    lcd.setCursor(7, 0);
     destinataire = msgID - 0x200;
     lcd.print(destinataire);
+    lcd.setCursor(12, 0);
+    lcd.print(recData[1], HEX);
     lcd.setCursor(0, 1);
     
     switch (recData[1]){
