@@ -37,6 +37,7 @@ uint8_t tosend[8];
 uint8_t recSize, recData[8];
 uint8_t push = 1;
 uint16_t msgID = 0x2AB;
+uint8_t swState;
 const int nb_nodes_max = 4;                  //////  15
 int nb_nodes_activees;
 int my_node = 2;
@@ -435,25 +436,25 @@ void Action(int action){
   tosend[0] = destinataire;
   Serial.print("Action : ");
   Serial.println(action);
+  
   switch (action){
+    
     case 8:   tosend[1] = 0x00;
+              tosend[2] = (i2cIo.Read(GPIO) & 0x0F) << 4;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
               break;
+              
     case 7:   tosend[1] = 0x01;
+              tosend[2] = (i2cIo.Read(GPIO) & 0x0F) << 4;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
               break;
+              
     case 6:   tosend[1] = 0x02;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 2, TX_BUFFER_0);
               Serial.print("Destinataire : ");
               Serial.println(destinataire);
               Serial.println("Demande poten envoyee");
               break;
-              /*while(isInt == 0){
-                continue;
-              }
-              isInt = 0;
-              can_dev.write(CANINTF, 0x00);
-              Reaction();*/
               
     case 5:  tosend[1] = 0x03;
               tosend[2] = LSB_poten;
@@ -461,6 +462,7 @@ void Action(int action){
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 4, TX_BUFFER_0);
               Serial.println("Reponse poten envoyee");
               break;
+              
   }  
   canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
   canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);  
@@ -481,8 +483,16 @@ void Reaction(){
   if(recData[0] == my_node){
     Serial.print("opMode : ");
     Serial.println(recData[1]);
+    
     switch (recData[1]){
-      case 0x02:  destinataire = canutil.whichStdID(RX_BUFFER_0);
+
+      case 0x00:    spiIo.Write(GPIO, recData[2]);
+                    break;
+
+      case 0x01:    spiIo.Write(GPIO, recData[2]);
+                    break;
+      
+      case 0x02:    destinataire = canutil.whichStdID(RX_BUFFER_0);
                     destinataire -= 0x200;
                     valeur_poten = analogRead(pinPoten);
                     Serial.print("Valeur poten envoyee : ");
@@ -491,7 +501,8 @@ void Reaction(){
                     MSB_poten = valeur_poten / 256;
                     Action(5);
                     break;
-      case 0x03:  valeur_poten = recData[3] * 256 + recData[2];
+                    
+      case 0x03:    valeur_poten = recData[3] * 256 + recData[2];
                     Serial.print("Valeur poten recue : ");
                     Serial.println(valeur_poten);
                     lcd.clear();
@@ -500,10 +511,8 @@ void Reaction(){
                     lcd.write("valeur --> ");
                     lcd.setCursor(12, 1);
                     lcd.print(valeur_poten);
-                    /*while(!appuis(5)){
-                      continue;
-                    }*/
                     break;
+                    
     }
     
   }
@@ -562,7 +571,6 @@ void somethingReceived()
 
 boolean appuis(int bouton)
 {
-    uint8_t swState;
     if(bouton >= 9 && bouton <= 12)
     {
         swState = i2cIo.Read(GPIO);
