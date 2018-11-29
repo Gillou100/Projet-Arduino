@@ -1,3 +1,5 @@
+////////////////// Voir à la fin utiliser les filtres si reste temps
+
 //************************************************************
 // normal mode, sends and recs one byte, std messages
 //
@@ -36,9 +38,9 @@ uint8_t recSize, recData[8];
 uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 uint8_t swState;
-const int nb_nodes_max = 15;
+const int nb_nodes_max = 4;                  //////  15
 int nb_nodes_activees;
-int my_node = 9;
+int my_node = 2;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -54,29 +56,75 @@ int numero_list;
 int destinataire = 0;
 
 void setup() {
+  pinMode(3, INPUT);
   i2c_io.Write(IOCON, 0x04);   // makes I2C interrupt pin open-drain
 
   Serial.begin(9600);
-  lcd.begin(16, 2);
   attachInterrupt(0, somethingReceived, FALLING);  // int received on pin 2 if JMP16 is in position A
+
+  lcd.begin(16, 2);
+  lcd.clear();
+  lcd.print("RX-TX ");
+  lcd.print(msgID,HEX);
+  opmode = canutil.whichOpMode();
+  //lcd.setCursor(0,1);
+  lcd.print(" mode ");
+  lcd.print(opmode, DEC);
 
   canutil.setOpMode(OPMODE_CONFIG); // sets configuration mode
   canutil.waitOpMode(OPMODE_CONFIG);  // waits configuration mode
 
   canutil.flashRxbf();  //just for fun!
 
+
+  //can.write(CANINTE,0x01);  //disables all interrupts but RX0IE (received message in RX buffer 0)
   can_dev.write(CANINTE, 0x03);
   can_dev.write(CANINTF, 0x00);  // Clears all interrupts flags
   canutil.setClkoutMode(CLKOUT_DISABLED, CLKOUT_DIV_1); // disables CLKOUT
   canutil.setTxnrtsPinMode(PIN_MODE_ALL_PURPOSE, PIN_MODE_ALL_PURPOSE, PIN_MODE_ALL_PURPOSE); // all TXnRTS pins as all-purpose digital input
 
+
+  // Bit timing section
+  //  setting the bit timing registers with Fosc = 16MHz -> Tosc = 62,5ns
+  // data transfer = 125kHz -> bit time = 8us, we choose arbitrarily 8us = 16 TQ  (8 TQ <= bit time <= 25 TQ)
+  // time quanta TQ = 2(BRP + 1) Tosc, so BRP =3
+  // sync_seg = 1 TQ, we choose prop_seg = 2 TQ
+  // Phase_seg1 = 7TQ yields a sampling point at 10 TQ (60% of bit length, recommended value)
+  // phase_seg2 = 6 TQ SJSW <=4 TQ, SJSW = 1 TQ chosen
   can_dev.write(CNF1, 0x03); // SJW = 1, BRP = 3
   can_dev.write(CNF2, 0b10110001); //BLTMODE = 1, SAM = 0, PHSEG = 6, PRSEG = 1
   can_dev.write(CNF3, 0x05);  // WAKFIL = 0, PHSEG2 = 5
 
-  canutil.setRxOperatingMode(RXMODE_STDONLY, ROLLOVER_ENABLE, RX_BUFFER_0);
-  canutil.setRxOperatingMode(RXMODE_STDONLY, ROLLOVER_ENABLE, RX_BUFFER_1);
-  canutil.setOpMode(OPMODE_NORMAL);
+
+
+  // Settings for buffer RXB0
+  //canutil.setRxOperatingMode(3, 1, 0);  // mask off  and rollover
+  canutil.setRxOperatingMode(RXMODE_STDONLY, ROLLOVER_ENABLE, RX_BUFFER_0);  // standard ID messages only  and rollover
+//  canutil.setAcceptanceFilter(0x2AB, 2000, NORMAL_FRAME, RX_ACCEPT_FILTER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 0
+//  canutil.setAcceptanceFilter(0x2AC, 2001, NORMAL_FRAME, RX_ACCEPT_FILTER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 1 = extended, filter# 1
+//  canutil.setAcceptanceMask(0xFFFF, 0x00000000, RX_BUFFER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, buffer# 0
+  canutil.setAcceptanceMask(0x000, 0x00000000, RX_BUFFER_0); // 0 <= stdID <= 2047, 0 <= extID <= 262143, buffer# 0 ////////////////
+  // in this case, only messages with ID equal to 0x2AB or 0x2AC will be accepted since mask is set to 0xFFF
+  // for example, if mask is set to 0xFF0, all the message with ID beginning with 0x2A will be accepted
+
+
+  // Settings for buffer RXB1
+  canutil.setRxOperatingMode(RXMODE_STDONLY, ROLLOVER_ENABLE, RX_BUFFER_1);  // std  ID messages  rollover 
+//  canutil.setAcceptanceFilter(0x2AA, 2002, NORMAL_FRAME, RX_ACCEPT_FILTER_2); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 
+//  canutil.setAcceptanceFilter(0x2AA, 2003, NORMAL_FRAME, RX_ACCEPT_FILTER_3); // 0 <= stdID <= 2047, 0 <= extID <= 262143,
+//  canutil.setAcceptanceFilter(0x2AA, 2004, NORMAL_FRAME, RX_ACCEPT_FILTER_4); // 0 <= stdID <= 2047, 0 <= extID <= 262143,
+//  canutil.setAcceptanceFilter(0x2AA, 2005, NORMAL_FRAME, RX_ACCEPT_FILTER_5);// 0 <= stdID <= 2047, 0 <= extID <= 262143,
+//  canutil.setAcceptanceMask(0xFFF, 0xFFFFFFFF, RX_BUFFER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143, 
+  canutil.setAcceptanceMask(0x000, 0xFFFFFFFF, RX_BUFFER_1); // 0 <= stdID <= 2047, 0 <= extID <= 262143,   //////////////
+
+  canutil.setOpMode(OPMODE_NORMAL); // sets normal mode
+  opmode = canutil.whichOpMode();
+  lcd.setCursor(15, 0);
+  lcd.print(opmode, DEC);
+
+  canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0); // TX standard messsages with buffer 0
+  canutil.setTxBufferDataLength(SEND_DATA_FRAME, 1, TX_BUFFER_0); // TX normal data, 1 byte long, with buffer 0
+  
 
 
   for (int i = 0; i < 8; i++) {
@@ -84,12 +132,24 @@ void setup() {
     list_nodes[i] = 0;
   }
 
+<<<<<<< HEAD
   i2cIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits
   spiIo.Write(IODIR, 0x0F);   // sets SPI port direction for individual bits
+=======
+  lcd.setCursor(0, 1);
+  lcd.print("                ");
+
+>>>>>>> parent of 97b9b55... Final !!!
 
   isInt = 0;
   can_dev.write(CANINTF, 0x00);  // Clears all interrupts flags
   push = 0;
+<<<<<<< HEAD
+=======
+
+  i2cIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits (Je sais pas ce que çça fait, mais c'est nécessaire)
+  spiIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits (Je sais pas ce que çça fait, mais c'est nécessaire)
+>>>>>>> parent of 97b9b55... Final !!!
 
   initialisation = false;
 
@@ -102,8 +162,6 @@ void setup() {
 void loop() {
 
   while (initialisation == false){
-      canutil.setAcceptanceFilter(0x100, 2001, NORMAL_FRAME, RX_ACCEPT_FILTER_0);
-      canutil.setAcceptanceMask(0xFF0, 0x00000000, RX_BUFFER_0);
       lcd.clear();
       lcd.write("Attente");
       delay(500);
@@ -121,8 +179,6 @@ void loop() {
       }
   }
 
-  canutil.setAcceptanceFilter(0x200, 2001, NORMAL_FRAME, RX_ACCEPT_FILTER_0);
-  canutil.setAcceptanceMask(0xF00, 0x00000000, RX_BUFFER_0);
 
   if (isInt == 1){
     isInt = 0;
@@ -143,19 +199,38 @@ void loop() {
     temps1 = millis();
     temps2 = millis();
     while ((temps2 - temps1) < 1000){
-      if (isInt == 1 || afficher_liste() || appuis(8) || appuis(7) || appuis(6)){  
-          Serial.println("Sortie boucle");
+      if (isInt == 1 || afficher_liste()){  
+          Serial.println("Sortie");
           break;
         }
       temps2 = millis();
     }
+    Serial.println("Sortie boucle");
     if (isInt == 0){
       spiIo.Write(GPIO, 0b0000 << 4);
       i2cIo.Write(GPIO, 0b0000 << 4);
     }
   }
 
+
+  /*if ( digitalRead(3) == 0 && push == 0) {
+    sendMessage();
+    push = 1;
+  }
+
+
+  if ( digitalRead(3) == 1) {
+  push = 0;
 }
+
+ if (isInt==1){
+  displayMessage();
+ }*/
+
+
+}
+
+
 
 
 
@@ -164,12 +239,10 @@ void loop() {
 //                     other routines
 //******************************************************************
 
-
 void Master(){
-  canutil.setAcceptanceFilter(0x101, 2001, NORMAL_FRAME, RX_ACCEPT_FILTER_0);
-  canutil.setAcceptanceMask(0xFFF, 0x00000000, RX_BUFFER_0);
+
   nb_nodes_activees = 0;
-  delay(5000);                            // Remettre délai 5s debut
+  //delay(5000);                            // Remettre délai 5s debut
   msgID = 0x100;
   canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
   canutil.setTxBufferDataLength(SEND_DATA_FRAME, 1, TX_BUFFER_0);
@@ -232,7 +305,6 @@ void Master(){
       }
       Serial.println("apres reponse");
     }
-    
     else if (compteur == my_node){
       list_nodes[nb_nodes_activees] = compteur;
       nb_nodes_activees++;
@@ -241,6 +313,9 @@ void Master(){
   Serial.println("");
   }
 
+  /*for(compteur = nb_nodes_activees; compteur < nb_nodes_max; compteur++){
+    list_nodes[compteur] = 0;
+  }*/
   lcd.clear();
   lcd.write("Liste :");
   lcd.setCursor(0, 1);
@@ -283,6 +358,33 @@ void Master(){
     delay(1000);
     initialisation = true;
   }
+}
+
+
+void sendMessage() {
+  tosend[0]++;
+  canutil.setTxBufferDataField(tosend, TX_BUFFER_0);   // fills TX buffer
+  //Serial.println("setTx");
+  canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST); // requests transmission of buffer 0 with highest priority
+  //Serial.println("msgTx");
+
+  do {
+    txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
+    Serial.print("TX error = ");
+    Serial.println(txstatus, DEC);
+    txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
+    Serial.print("arb. loss = ");
+    Serial.println(txstatus, DEC);
+    txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
+    Serial.print("TX abort = ");
+    Serial.println(txstatus, DEC);
+    txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
+    Serial.print("mess. pending = ");
+    Serial.println(txstatus, DEC);
+    delay(500);
+  }
+  while (txstatus != 0);
+
 }
 
 
@@ -382,23 +484,9 @@ void Action(int action){
               
   }  
   canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
-  canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);
-  do {
-    txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
-    Serial.print("TX error = ");
-    Serial.println(txstatus, DEC);
-    txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
-    Serial.print("arb. loss = ");
-    Serial.println(txstatus, DEC);
-    txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
-    Serial.print("TX abort = ");
-    Serial.println(txstatus, DEC);
-    txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
-    Serial.print("mess. pending = ");
-    Serial.println(txstatus, DEC);
-    delay(500);
-  }
-  while (txstatus != 0);
+  canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);  
+  delay(1000);
+
 }
 
 
@@ -459,7 +547,28 @@ void Reaction(){
                     break;
                     
     }
+    
   }
+}
+
+
+void displayMessage() {
+  isInt = 0; // resets interrupt flag
+
+  can_dev.write(CANINTF, 0x00);  // Clears all interrupts flags
+
+  recSize = canutil.whichRxDataLength(RX_BUFFER_0); // checks the number of bytes received in buffer 0 (max = 8)
+
+  for (int i = 0; i < recSize; i++) { // gets the bytes
+    recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
+  }
+
+
+  lcd.setCursor(0, 1);
+  lcd.print("rec data =      ");
+  lcd.setCursor(10, 1);
+  lcd.print(recData[0], HEX);
+  lcd.print(" Hex");
 }
 
 
@@ -486,18 +595,14 @@ bool afficher_liste(){
 }
 
 
-
-
 //************************************************
 // routine attached to INT pin
 //************************************************
-
 
 void somethingReceived()
 {
   isInt = 1;
 }
-
 
 boolean appuis(int bouton)
 {
