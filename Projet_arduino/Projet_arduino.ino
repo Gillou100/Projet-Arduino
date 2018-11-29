@@ -440,7 +440,9 @@ void Reaction(){
                     
       case 0x03:    valeur_poten = recData[3] * 256 + recData[2];
                     lcd.print(valeur_poten, HEX);
-                    lcd.setCursor(8, 1);
+                    lcd.setCursor(4, 1);
+                    lcd.write("->");
+                    lcd.setCursor(7, 1);
                     lcd.print(valeur_poten, DEC);
                     Serial.print("Valeur poten recue : ");
                     Serial.println(valeur_poten);
