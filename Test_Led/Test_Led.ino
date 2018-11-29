@@ -42,7 +42,7 @@ void loop()
     // Bouton 8 -> Les SPI (reception) : spiIo.Write(GPIO, donneeRecue);
     
     // Bouton 7 -> Led I2C (envoyer) : (i2cIo.Read(GPIO) & 0x0F) << 4 (oui, c'est la même chose que l'autre bouton)
-    // Bouton 7 -> Led I2C (reception) : spiIo.Write(GPIO, donneeRecue);
+    // Bouton 7 -> Led I2C (reception) : i2cIo.Write(GPIO, donneeRecue);
     
 }
 
