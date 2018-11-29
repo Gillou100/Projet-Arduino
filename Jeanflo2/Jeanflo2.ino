@@ -186,7 +186,7 @@ void loop() {
   else {
     afficher_liste();
   }
-  Serial.println("");
+  //Serial.println("");
 
   //afficher_liste();
 
@@ -429,15 +429,18 @@ void Action(int action){
   Serial.print("Action : ");
   Serial.println(action);
   switch (action){
-    case 8:  tosend[1] = 0x00;
+    case 8:   tosend[1] = 0x00;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
-    case 7:  tosend[1] = 0x01;
+              break;
+    case 7:   tosend[1] = 0x01;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
-    case 6:  tosend[1] = 0x02;
+              break;
+    case 6:   tosend[1] = 0x02;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 2, TX_BUFFER_0);
               Serial.print("Destinataire : ");
               Serial.println(destinataire);
               Serial.println("Demande poten envoyee");
+              break;
               /*while(isInt == 0){
                 continue;
               }
@@ -450,6 +453,7 @@ void Action(int action){
               tosend[3] = MSB_poten;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 4, TX_BUFFER_0);
               Serial.println("Reponse poten envoyee");
+              break;
   }  
   canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
   canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);  
@@ -479,6 +483,7 @@ void Reaction(){
                     LSB_poten = valeur_poten % 256;
                     MSB_poten = valeur_poten / 256;
                     Action(5);
+                    break;
       case 0x03:  valeur_poten = recData[3] * 256 + recData[2];
                     Serial.print("Valeur poten recue : ");
                     Serial.println(valeur_poten);
@@ -491,6 +496,7 @@ void Reaction(){
                     while(!appuis(5)){
                       continue;
                     }
+                    break;
     }
     
   }
