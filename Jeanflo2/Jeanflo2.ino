@@ -34,8 +34,8 @@ uint8_t recSize, recData[8];
 uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
-int nb_nodes_activees = 0;
-int my_node = 2;
+int nb_nodes_activees;
+int my_node = 5;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -162,7 +162,16 @@ void loop() {
       }
   }
 
-  
+
+  /*if (isInt == 1){
+    isInt = 0;
+    can_dev.write(CANINTF, 0x00);
+    reponse_Action();
+  }
+  else {
+    afficher_liste();
+  }*/
+
   afficher_liste();
 
 
@@ -194,6 +203,7 @@ void loop() {
 
 void Master(){
 
+  nb_nodes_activees = 0;
   delay(5000);                            // Remettre délai 5s debut
   msgID = 0x100;
   canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
@@ -393,6 +403,11 @@ void reponse_Master(){
         initialisation = true;
      }
   }
+}
+
+
+void reponse_Action(){
+  
 }
 
 
