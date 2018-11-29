@@ -45,7 +45,7 @@ bool initialisation;
 bool attente;
 unsigned long temps1;
 unsigned long temps2;
-byte pinPoten = 3;
+byte pinPoten = 9;
 int ancienne_valeur_poten;
 int valeur_poten;
 byte LSB_poten;
