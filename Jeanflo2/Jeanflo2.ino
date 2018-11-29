@@ -37,9 +37,9 @@ uint8_t tosend[8];
 uint8_t recSize, recData[8];
 uint8_t push = 1;
 uint16_t msgID = 0x2AB;
-const int nb_nodes_max = 15;
+const int nb_nodes_max = 4;                  //////  15
 int nb_nodes_activees;
-int my_node = 7;
+int my_node = 3;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -171,6 +171,7 @@ void loop() {
   if (isInt == 1){
     isInt = 0;
     can_dev.write(CANINTF, 0x00);
+    Serial.println("Message recu");
     Reaction();
   }
   else if(appuis(8)){
@@ -219,7 +220,7 @@ void loop() {
 void Master(){
 
   nb_nodes_activees = 0;
-  delay(5000);                            // Remettre délai 5s debut
+  //delay(5000);                            // Remettre délai 5s debut
   msgID = 0x100;
   canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
   canutil.setTxBufferDataLength(SEND_DATA_FRAME, 1, TX_BUFFER_0);
@@ -425,24 +426,26 @@ void Action(int action){
   msgID = 0x200 + my_node;
   canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
   tosend[0] = destinataire;
+  Serial.print("Action : ");
+  Serial.println(action);
   switch (action){
-    case(8):  tosend[1] = 0x00;
+    case 8:  tosend[1] = 0x00;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
-    case(7):  tosend[1] = 0x01;
+    case 7:  tosend[1] = 0x01;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
-    case(6):  tosend[1] = 0x02;
+    case 6:  tosend[1] = 0x02;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 2, TX_BUFFER_0);
               Serial.print("Destinataire : ");
               Serial.println(destinataire);
               Serial.println("Demande poten envoyee");
-              while(isInt == 0){
+              /*while(isInt == 0){
                 continue;
               }
               isInt = 0;
               can_dev.write(CANINTF, 0x00);
-              Reaction();
+              Reaction();*/
               
-    case(5):  tosend[1] = 0x03;
+    case 5:  tosend[1] = 0x03;
               tosend[2] = LSB_poten;
               tosend[3] = MSB_poten;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 4, TX_BUFFER_0);
@@ -460,11 +463,15 @@ void Reaction(){
   for (int i = 0; i < recSize; i++) {
     recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
   }
+  Serial.print("node recu : ");
+  Serial.println(recData[0]);
+  Serial.print("my_node : ");
+  Serial.println(my_node);
   if(recData[0] == my_node){
     Serial.print("opMode : ");
     Serial.println(recData[1]);
     switch (recData[1]){
-      case (0x02):  destinataire = canutil.whichStdID(RX_BUFFER_0);
+      case 0x02:  destinataire = canutil.whichStdID(RX_BUFFER_0);
                     destinataire -= 0x200;
                     valeur_poten = analogRead(pinPoten);
                     Serial.print("Valeur poten envoyee : ");
@@ -472,7 +479,7 @@ void Reaction(){
                     LSB_poten = valeur_poten % 256;
                     MSB_poten = valeur_poten / 256;
                     Action(5);
-      case (0x03):  valeur_poten = recData[3] * 256 + recData[2];
+      case 0x03:  valeur_poten = recData[3] * 256 + recData[2];
                     Serial.print("Valeur poten recue : ");
                     Serial.println(valeur_poten);
                     lcd.clear();
@@ -518,7 +525,7 @@ void afficher_liste(){
     numero_list--;
   }
   destinataire = list_nodes[numero_list];
-  Serial.println(numero_list);
+  //Serial.println(numero_list);
   lcd.clear();
   lcd.write("Node choisie : ");
   lcd.setCursor(0, 1);
