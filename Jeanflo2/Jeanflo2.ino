@@ -39,7 +39,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 4;                  //////  15
 int nb_nodes_activees;
-int my_node = 3;
+int my_node = 2;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -47,6 +47,7 @@ bool attente;
 unsigned long temps1;
 unsigned long temps2;
 byte pinPoten = 3;
+int ancienne_valeur_poten;
 int valeur_poten;
 byte LSB_poten;
 byte MSB_poten;
@@ -164,6 +165,8 @@ void loop() {
         isInt = 0;
         can_dev.write(CANINTF, 0x00);
         reponse_Master();
+        Serial.print("nodes activees : ");
+        Serial.println(nb_nodes_activees);
       }
   }
 
@@ -184,8 +187,6 @@ void loop() {
     Action(6);
   }
   else {
-    /*Serial.print("nodes activees : ");
-    Serial.println(nb_nodes_activees);*/
     afficher_liste();
   }
   //Serial.println("");
@@ -499,9 +500,9 @@ void Reaction(){
                     lcd.write("valeur --> ");
                     lcd.setCursor(12, 1);
                     lcd.print(valeur_poten);
-                    while(!appuis(5)){
+                    /*while(!appuis(5)){
                       continue;
-                    }
+                    }*/
                     break;
     }
     
@@ -531,24 +532,22 @@ void displayMessage() {
 
 void afficher_liste(){
   valeur_poten = analogRead(pinPoten);
-  //numero_list = map(valeur_poten, 0, 1023, 0, nb_nodes_activees - 1);
-  numero_list = (int) ((valeur_poten * nb_nodes_activees) / 1023);
-  Serial.println(numero_list);
-  Serial.println(valeur_poten);
-  Serial.println(nb_nodes_activees);
-  Serial.println("");
-  if(numero_list == nb_nodes_activees){
-    numero_list--;
+  if(valeur_poten <= ancienne_valeur_poten - 10 || valeur_poten >= ancienne_valeur_poten + 10){
+    numero_list = (int) ((valeur_poten * nb_nodes_activees) / 1023);
+    if(numero_list == nb_nodes_activees){
+      numero_list--;
+    }
+    destinataire = list_nodes[numero_list];
+    //Serial.println(numero_list);
+    lcd.clear();
+    lcd.write("Node choisie : ");
+    lcd.setCursor(0, 1);
+    lcd.write("numero ");
+    lcd.setCursor(8, 1);
+    lcd.print(destinataire);
+    ancienne_valeur_poten = valeur_poten;
+    delay(500);
   }
-  destinataire = list_nodes[numero_list];
-  Serial.println(numero_list);
-  lcd.clear();
-  lcd.write("Node choisie : ");
-  lcd.setCursor(0, 1);
-  lcd.write("numero ");
-  lcd.setCursor(8, 1);
-  lcd.print(destinataire);
-  delay(500);
 }
 
 
