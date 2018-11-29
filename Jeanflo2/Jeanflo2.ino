@@ -15,10 +15,14 @@
 
 #define MCP23008_ADDR 0x00  // Adresse I2C par défaut
 #define MCP23S08_ADDR 0x00  // Adresse SPI par défaut
-#define MASQ6 0b0100    // Masque pour reconnaitre les appuis sur le bouton 6
-#define MASQ7 0b0010    // Masque pour reconnaitre les appuis sur le bouton 7
-#define MASQ8 0b0001    // Masque pour reconnaitre les appuis sur le bouton 8
-#define MASQ9 0b1000    // Masque pour reconnaitre les appuis sur le bouton 9
+#define MASQ5  0b1000   // Masque pour reconnaitre les appuis sur le bouton 5
+#define MASQ6  0b0100   // Masque pour reconnaitre les appuis sur le bouton 6
+#define MASQ7  0b0010   // Masque pour reconnaitre les appuis sur le bouton 7
+#define MASQ8  0b0001   // Masque pour reconnaitre les appuis sur le bouton 8
+#define MASQ9  0b1000   // Masque pour reconnaitre les appuis sur le bouton 9
+#define MASQ10 0b0100   // Masque pour reconnaitre les appuis sur le bouton 10
+#define MASQ11 0b0010   // Masque pour reconnaitre les appuis sur le bouton 11
+#define MASQ12 0b0001   // Masque pour reconnaitre les appuis sur le bouton 12
 
 MCP2510  can_dev(9); // defines pb0 (arduino pin8) as the _CS pin for MCP2510
 LiquidCrystal lcd(15, 0, 14, 4, 5, 6, 7);  //  4 bits without R/W pin
@@ -35,7 +39,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
 int nb_nodes_activees;
-int my_node = 9;
+int my_node = 6;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -535,6 +539,9 @@ boolean appuis(int bouton)
     
     switch(bouton)
     {
+        case 5:
+            return !(swState & MASQ5);
+            break;
         case 6:
             return !(swState & MASQ6);
             break;
@@ -547,6 +554,15 @@ boolean appuis(int bouton)
         case 9:
             return !(swState & MASQ9);
             break;
+        case 10:
+            return !(swState & MASQ10);
+            break;
+        case 11:
+            return !(swState & MASQ11);
+            break;
+        case 12:
+            return !(swState & MASQ12);
+            break; 
         default:
             Serial.println("Bouton non utilisé");
             return false;
