@@ -39,7 +39,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
 int nb_nodes_activees;
-int my_node = 6;
+int my_node = 4;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -433,6 +433,13 @@ void Action(int action){
     case(6):  tosend[1] = 0x02;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 2, TX_BUFFER_0);
               Serial.println("Demande poten envoyee");
+              while(isInt == 0){
+                continue;
+              }
+              isInt = 0;
+              can_dev.write(CANINTF, 0x00);
+              Reaction();
+              
     case(5):  tosend[1] = 0x03;
               tosend[2] = LSB_poten;
               tosend[3] = MSB_poten;
@@ -441,7 +448,7 @@ void Action(int action){
   }  
   canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
   canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);  
-
+  delay(1000);
 
 }
 
