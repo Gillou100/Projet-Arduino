@@ -184,6 +184,8 @@ void loop() {
     Action(6);
   }
   else {
+    /*Serial.print("nodes activees : ");
+    Serial.println(nb_nodes_activees);*/
     afficher_liste();
   }
   //Serial.println("");
@@ -406,8 +408,11 @@ void reponse_Master(){
       }
       else if (msgID == 0x102){
         nb_nodes_activees = recSize;
+        Serial.print("Nombre nodes activees : ");
+        Serial.println(nb_nodes_activees);
         for (compteur = 0; compteur < 8; compteur++){
           if (compteur < recSize){
+            Serial.println(recData[compteur]);
             list_nodes[compteur] = recData[compteur];
           }
           else {
@@ -416,6 +421,7 @@ void reponse_Master(){
         }
         lcd.clear();
         lcd.write("Liste recue");
+        delay(1000);
         initialisation = true;
      }
   }
@@ -527,11 +533,15 @@ void afficher_liste(){
   valeur_poten = analogRead(pinPoten);
   //numero_list = map(valeur_poten, 0, 1023, 0, nb_nodes_activees - 1);
   numero_list = (int) ((valeur_poten * nb_nodes_activees) / 1023);
+  Serial.println(numero_list);
+  Serial.println(valeur_poten);
+  Serial.println(nb_nodes_activees);
+  Serial.println("");
   if(numero_list == nb_nodes_activees){
     numero_list--;
   }
   destinataire = list_nodes[numero_list];
-  //Serial.println(numero_list);
+  Serial.println(numero_list);
   lcd.clear();
   lcd.write("Node choisie : ");
   lcd.setCursor(0, 1);
