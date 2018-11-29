@@ -40,7 +40,7 @@ uint16_t msgID = 0x2AB;
 uint8_t swState;
 const int nb_nodes_max = 4;                  //////  15
 int nb_nodes_activees;
-int my_node = 2;
+int my_node = 3;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -188,11 +188,21 @@ void loop() {
     Action(6);
   }
   else {
-    afficher_liste();
+    temps1 = millis();
+    temps2 = millis();
+    while ((temps2 - temps1) < 1000){
+      if (isInt == 1 || afficher_liste()){  
+          Serial.println("Sortie");
+          break;
+        }
+      temps2 = millis();
+    }
+    Serial.println("Sortie boucle");
+    if (isInt == 0){
+      spiIo.Write(GPIO, 0b0000 << 4);
+      i2cIo.Write(GPIO, 0b0000 << 4);
+    }
   }
-  //Serial.println("");
-
-  //afficher_liste();
 
 
   /*if ( digitalRead(3) == 0 && push == 0) {
@@ -231,67 +241,68 @@ void Master(){
   Serial.println("initialisation trame");
   
   for(compteur = 1; compteur < nb_nodes_max + 1; compteur++){
+    if(nb_nodes_activees == 8){
+      break;
+    }
     lcd.setCursor(11, 0);
     lcd.print(compteur);
-    if(nb_nodes_activees < 8){
-      if (compteur != my_node){
-        
-        // envoie
-        tosend[0] = compteur;
-        canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
-        canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);
-        Serial.println("initialisation envoie");
-        do {
-          txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
-          Serial.print("TX error = ");
-          Serial.println(txstatus, DEC);
-          txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
-          Serial.print("arb. loss = ");
-          Serial.println(txstatus, DEC);
-          txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
-          Serial.print("TX abort = ");
-          Serial.println(txstatus, DEC);
-          txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
-          Serial.print("mess. pending = ");
-          Serial.println(txstatus, DEC);
-          delay(500);
-        }
-        while (txstatus != 0);
-  
-        // réponse
-        attente = true;
-        temps1 = millis();
-        temps2 = millis();
-        Serial.println("avant reponse");
-        while (attente == true && (temps2 - temps1) < 2000){
-          if (isInt == 1){
-            can_dev.write(CANINTF, 0x00);
-            msgID = canutil.whichStdID(RX_BUFFER_0);
-            if(msgID == 0x101){ 
-              recSize = canutil.whichRxDataLength(RX_BUFFER_0);
-              for (int i = 0; i < recSize; i++) {
-                recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
-              }
-              if(recData[0] == compteur){
-                Serial.println("Ajout au tableau");
-                list_nodes[nb_nodes_activees] = compteur;
-                nb_nodes_activees++;
-                isInt = 0;
-                attente = false;
-              }
+    if (compteur != my_node){
+      
+      // envoie
+      tosend[0] = compteur;
+      canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
+      canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);
+      Serial.println("initialisation envoie");
+      do {
+        txstatus = canutil.isTxError(TX_BUFFER_0);  // checks tx error
+        Serial.print("TX error = ");
+        Serial.println(txstatus, DEC);
+        txstatus = canutil.isArbitrationLoss(TX_BUFFER_0);  // checks for arbitration loss
+        Serial.print("arb. loss = ");
+        Serial.println(txstatus, DEC);
+        txstatus = canutil.isMessageAborted(TX_BUFFER_0);  // ckecks for message abort
+        Serial.print("TX abort = ");
+        Serial.println(txstatus, DEC);
+        txstatus = canutil.isMessagePending(TX_BUFFER_0);   // checks transmission
+        Serial.print("mess. pending = ");
+        Serial.println(txstatus, DEC);
+        delay(500);
+      }
+      while (txstatus != 0);
+
+      // réponse
+      attente = true;
+      temps1 = millis();
+      temps2 = millis();
+      Serial.println("avant reponse");
+      while (attente == true && (temps2 - temps1) < 2000){
+        if (isInt == 1){
+          can_dev.write(CANINTF, 0x00);
+          msgID = canutil.whichStdID(RX_BUFFER_0);
+          if(msgID == 0x101){ 
+            recSize = canutil.whichRxDataLength(RX_BUFFER_0);
+            for (int i = 0; i < recSize; i++) {
+              recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
             }
-         }
-           temps2 = millis();
-        }
-        Serial.println("apres reponse");
+            if(recData[0] == compteur){
+              Serial.println("Ajout au tableau");
+              list_nodes[nb_nodes_activees] = compteur;
+              nb_nodes_activees++;
+              isInt = 0;
+              attente = false;
+            }
+          }
+       }
+         temps2 = millis();
       }
-      else if (compteur == my_node){
-        list_nodes[nb_nodes_activees] = compteur;
-        nb_nodes_activees++;
-        Serial.println("c'est moi");
-      }
+      Serial.println("apres reponse");
     }
-    Serial.println("");
+    else if (compteur == my_node){
+      list_nodes[nb_nodes_activees] = compteur;
+      nb_nodes_activees++;
+      Serial.println("c'est moi");
+    }
+  Serial.println("");
   }
 
   /*for(compteur = nb_nodes_activees; compteur < nb_nodes_max; compteur++){
@@ -483,18 +494,25 @@ void Reaction(){
   if(recData[0] == my_node){
     Serial.print("opMode : ");
     Serial.println(recData[1]);
+    lcd.clear();
+    msgID = canutil.whichStdID(RX_BUFFER_0);
+    lcd.print(msgID, HEX);
+    lcd.setCursor(8, 0);
+    destinataire = msgID - 0x200;
+    lcd.print(destinataire);
+    lcd.setCursor(0, 1);
     
     switch (recData[1]){
 
-      case 0x00:    spiIo.Write(GPIO, recData[2]);
+      case 0x00:    lcd.print(recData[2], BIN);
+                    spiIo.Write(GPIO, ~recData[2]);
                     break;
 
-      case 0x01:    spiIo.Write(GPIO, recData[2]);
+      case 0x01:    lcd.print(recData[2], BIN);
+                    i2cIo.Write(GPIO, ~recData[2]);
                     break;
       
-      case 0x02:    destinataire = canutil.whichStdID(RX_BUFFER_0);
-                    destinataire -= 0x200;
-                    valeur_poten = analogRead(pinPoten);
+      case 0x02:    valeur_poten = analogRead(pinPoten);
                     Serial.print("Valeur poten envoyee : ");
                     Serial.println(valeur_poten);
                     LSB_poten = valeur_poten % 256;
@@ -503,14 +521,17 @@ void Reaction(){
                     break;
                     
       case 0x03:    valeur_poten = recData[3] * 256 + recData[2];
+                    lcd.print(valeur_poten, HEX);
+                    lcd.setCursor(8, 1);
+                    lcd.print(valeur_poten, DEC);
                     Serial.print("Valeur poten recue : ");
                     Serial.println(valeur_poten);
-                    lcd.clear();
+                    /*lcd.clear();
                     lcd.write("Potentiometre");
                     lcd.setCursor(0, 1);
                     lcd.write("valeur --> ");
                     lcd.setCursor(12, 1);
-                    lcd.print(valeur_poten);
+                    lcd.print(valeur_poten);*/
                     break;
                     
     }
@@ -539,7 +560,7 @@ void displayMessage() {
 }
 
 
-void afficher_liste(){
+bool afficher_liste(){
   valeur_poten = analogRead(pinPoten);
   if(valeur_poten <= ancienne_valeur_poten - 10 || valeur_poten >= ancienne_valeur_poten + 10){
     numero_list = (int) ((valeur_poten * nb_nodes_activees) / 1023);
@@ -556,7 +577,9 @@ void afficher_liste(){
     lcd.print(destinataire);
     ancienne_valeur_poten = valeur_poten;
     delay(500);
+    return(true);
   }
+  return(false);
 }
 
 
