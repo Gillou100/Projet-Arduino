@@ -11,7 +11,12 @@
 MCP23008 i2cIo(MCP23008_ADDR);      // Objet pour le protocole I2C
 MCP23S08 spiIo(MCP23S08_ADDR, 10);  // Objet pour le protocole SPI
 
+
+uint8_t swState;    // États des boutons;
 uint8_t donnees[8];
+
+byte boutons[] = {7,8};
+byte bouton;
 
 void setup()
 {
@@ -23,11 +28,26 @@ void setup()
 
 void loop()
 {
+    bouton = 0;
+    for(int i = 0; i < 2; i++)
+    {
+        if(appuis(boutons[i]))
+        {
+            bouton = boutons[i];
+            break;
+        }
+    }
+    commanderLeds(bouton);
+    // Bouton 8 -> Led SPI (envoyer) : (i2cIo.Read(GPIO) & 0x0F) << 4
+    // Bouton 8 -> Les SPI (reception) : spiIo.Write(GPIO, donneeRecue);
+    
+    // Bouton 7 -> Led I2C (envoyer) : (i2cIo.Read(GPIO) & 0x0F) << 4 (oui, c'est la même chose que l'autre bouton)
+    // Bouton 7 -> Led I2C (reception) : spiIo.Write(GPIO, swState);
+    
 }
 
 boolean appuis(int bouton)
 {
-    uint8_t swState;
     if(bouton >= 9 && bouton <= 12)
     {
         swState = i2cIo.Read(GPIO);
@@ -62,39 +82,31 @@ boolean appuis(int bouton)
             break;
     }
 }
-void CommanderledI2c(bool ok)
+void commanderLeds(int bouton)
 {
-    if(ok)
+    switch(bouton)
     {
-        uint8_t swStateI2c = i2cIo.Read(GPIO);
-        swStateI2c = (swStateI2c & 0x0F) << 4;
-        i2cIo.Write(GPIO, swStateI2c);
+        case 0:
+            i2cIo.Write(GPIO, 0b1111 << 4);
+            spiIo.Write(GPIO, 0b1111 << 4);
+            break;
+        case 7:
+            //swState = (i2cIo.Read(GPIO) & 0x0F) << 4;
+            swState = i2cIo.Read(GPIO);
+            //Serial.println(swState, BIN);
+            swState = (swState & 0x0F) << 4;
+            Serial.println(swState, BIN);
+            i2cIo.Write(GPIO, swState);
+            break;
+        case 8:
+            //swState = (i2cIo.Read(GPIO) & 0x0F) << 4;
+            swState = i2cIo.Read(GPIO);
+            //Serial.println(swState, BIN);
+            swState = (swState & 0x0F) << 4;
+            Serial.println(swState, BIN);
+            spiIo.Write(GPIO, swState);
+            break;
+        default:
+            Serial.println("Ce bouton ne correspon à aucune commande de Led");
     }
-    else
-    {
-        i2cIo.Write(GPIO, 0b1111 << 4);
-    }
-}
-void CommanderledSpi(bool ok)
-{
-    if(ok)
-    {
-        uint8_t swStateI2c = i2cIo.Read(GPIO);
-        swStateI2c = (swStateI2c & 0x0F) << 4;
-        spiIo.Write(GPIO, swStateI2c);
-    }
-    else
-    {
-        spiIo.Write(GPIO, 0b1111 << 4);
-    }   
-}
-
-void fonctionJF(int opCode, uint8_t data[8])
-{
-    Serial.println("ID Action : " + opCode);
-    for(int i = 0; i < 8; i++)
-    {
-        Serial.print(data[i] + " ");
-    }
-    Serial.println();
 }
