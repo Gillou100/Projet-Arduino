@@ -35,7 +35,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
 int nb_nodes_activees;
-int my_node = 5;
+int my_node = 9;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -47,6 +47,7 @@ int valeur_poten;
 byte LSB_poten;
 byte MSB_poten;
 int numero_list;
+int destinataire = 0;
 
 void setup() {
   pinMode(3, INPUT);
@@ -163,16 +164,25 @@ void loop() {
   }
 
 
-  /*if (isInt == 1){
+  if (isInt == 1){
     isInt = 0;
     can_dev.write(CANINTF, 0x00);
-    reponse_Action();
+    Reaction();
+  }
+  else if(appuis(8)){
+    Action(8);
+  }
+  else if(appuis(7)){
+    Action(7);
+  }
+  else if(appuis(6)){
+    Action(6);
   }
   else {
     afficher_liste();
-  }*/
+  }
 
-  afficher_liste();
+  //afficher_liste();
 
 
   /*if ( digitalRead(3) == 0 && push == 0) {
@@ -406,8 +416,55 @@ void reponse_Master(){
 }
 
 
-void reponse_Action(){
-  
+void Action(int action){
+  msgID = 0x200 + my_node;
+  canutil.setTxBufferID(msgID, 2000, NORMAL_FRAME, TX_BUFFER_0);
+  tosend[0] = destinataire;
+  switch (action){
+    case(8):  tosend[1] = 0x00;
+              canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
+    case(7):  tosend[1] = 0x01;
+              canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
+    case(6):  tosend[1] = 0x02;
+              canutil.setTxBufferDataLength(SEND_DATA_FRAME, 2, TX_BUFFER_0);
+    case(5):  tosend[1] = 0x03;
+              tosend[2] = LSB_poten;
+              tosend[3] = MSB_poten;
+              canutil.setTxBufferDataLength(SEND_DATA_FRAME, 4, TX_BUFFER_0);
+  }  
+  canutil.setTxBufferDataField(tosend, TX_BUFFER_0);
+  canutil.messageTransmitRequest(TX_BUFFER_0, TX_REQUEST, TX_PRIORITY_HIGHEST);  
+
+
+}
+
+
+void Reaction(){
+  recSize = canutil.whichRxDataLength(RX_BUFFER_0);
+  for (int i = 0; i < recSize; i++) {
+    recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
+  }
+  if(recData[0] == my_node){
+    switch (recData[1]){
+      case (0x02):  destinataire = canutil.whichStdID(RX_BUFFER_0);
+                    destinataire -= 0x200;
+                    valeur_poten = analogRead(pinPoten);
+                    LSB_poten = valeur_poten % 256;
+                    MSB_poten = valeur_poten / 256;
+                    Action(5);
+      case (0x03):  valeur_poten = recData[3] * 256 + recData[2];
+                    lcd.clear();
+                    lcd.write("Potentiometre");
+                    lcd.setCursor(0, 1);
+                    lcd.write("valeur --> ");
+                    lcd.setCursor(12, 1);
+                    lcd.print(valeur_poten);
+                    while(!appuis(5)){
+                      continue;
+                    }
+    }
+    
+  }
 }
 
 
@@ -438,13 +495,14 @@ void afficher_liste(){
   if(numero_list == nb_nodes_activees){
     numero_list--;
   }
+  destinataire = list_nodes[numero_list];
   Serial.println(numero_list);
   lcd.clear();
   lcd.write("Node choisie : ");
   lcd.setCursor(0, 1);
   lcd.write("numero ");
   lcd.setCursor(8, 1);
-  lcd.print(list_nodes[numero_list]);
+  lcd.print(destinataire);
   delay(500);
 }
 
