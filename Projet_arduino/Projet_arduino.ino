@@ -84,16 +84,14 @@ void setup() {
     list_nodes[i] = 0;
   }
 
-  isInt = 0;
-
   i2cIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits
-  spiIo.Write(IODIR, 0x0F);   // sets I2C port direction for individual bits
-
-  initialisation = false;
+  spiIo.Write(IODIR, 0x0F);   // sets SPI port direction for individual bits
 
   isInt = 0;
   can_dev.write(CANINTF, 0x00);  // Clears all interrupts flags
   push = 0;
+
+  initialisation = false;
 
   delay(1000);
 
