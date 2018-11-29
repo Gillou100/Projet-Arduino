@@ -91,7 +91,11 @@ void setup() {
 
   initialisation = false;
 
-   delay(1000);
+  isInt = 0;
+  can_dev.write(CANINTF, 0x00);  // Clears all interrupts flags
+  push = 0;
+
+  delay(1000);
 
 }
 
