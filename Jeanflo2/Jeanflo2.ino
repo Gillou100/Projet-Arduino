@@ -39,7 +39,7 @@ uint8_t push = 1;
 uint16_t msgID = 0x2AB;
 const int nb_nodes_max = 15;
 int nb_nodes_activees;
-int my_node = 4;
+int my_node = 7;
 uint8_t list_nodes[nb_nodes_max];
 int compteur;
 bool initialisation;
@@ -432,6 +432,8 @@ void Action(int action){
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 3, TX_BUFFER_0);
     case(6):  tosend[1] = 0x02;
               canutil.setTxBufferDataLength(SEND_DATA_FRAME, 2, TX_BUFFER_0);
+              Serial.print("Destinataire : ");
+              Serial.println(destinataire);
               Serial.println("Demande poten envoyee");
               while(isInt == 0){
                 continue;
@@ -459,6 +461,8 @@ void Reaction(){
     recData[i] = canutil.receivedDataValue(RX_BUFFER_0, i);
   }
   if(recData[0] == my_node){
+    Serial.print("opMode : ");
+    Serial.println(recData[1]);
     switch (recData[1]){
       case (0x02):  destinataire = canutil.whichStdID(RX_BUFFER_0);
                     destinataire -= 0x200;
